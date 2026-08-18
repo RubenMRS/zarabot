@@ -3,6 +3,7 @@ import logging
 import re
 import os
 from playwright.async_api import async_playwright
+from playwright_stealth import Stealth
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +40,8 @@ class ZaraScraper:
             await self.start()
             
         page = await self.context.new_page()
+        await Stealth().apply_stealth_async(page)
+        
         result = None
         try:
             # A Zara pode demorar um pouco a carregar e a passar a proteção

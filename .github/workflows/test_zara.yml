@@ -1,0 +1,38 @@
+name: Test Zara API
+on: [push, workflow_dispatch]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+      - name: Install HTTPX
+        run: pip install httpx
+      - name: Run Test
+        run: |
+          python -c "
+          import httpx
+          import asyncio
+
+          HEADERS = {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
+              'Accept': 'application/json',
+              'Accept-Language': 'pt-PT,pt;q=0.9',
+              'Referer': 'https://www.zara.com/pt/pt/',
+          }
+
+          async def test():
+              async with httpx.AsyncClient(headers=HEADERS, timeout=15) as client:
+                  try:
+                      resp = await client.get('https://www.zara.com/pt/pt/products-details?productIds=546977678&ajax=true')
+                      print('STATUS:', resp.status_code)
+                      print('BODY:', resp.text[:200])
+                  except Exception as e:
+                      print('ERRO:', e)
+          
+          asyncio.run(test())
+          "

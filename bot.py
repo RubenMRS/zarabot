@@ -116,6 +116,8 @@ async def adicionar(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "price": data["price"],
             "sizes": data["sizes"],
             "chat_id": chat_id,
+            "internal_id": data.get("internal_id"),
+            "color_product_id": data.get("color_product_id"),
             "last_check": datetime.now().isoformat()
         }
         save_products(products)
@@ -213,7 +215,15 @@ async def monitor_products(context: ContextTypes.DEFAULT_TYPE):
         # Intervalo pequeno para não sobrecarregar a Zara caso haja muitos produtos
         await asyncio.sleep(2)
         
-        new_data = await scraper.get_product_data(url)
+        # Se temos o internal_id guardado, usar a API direta (muito mais rápido)
+        internal_id = p.get("internal_id")
+        color_product_id = p.get("color_product_id")
+        
+        if internal_id:
+            new_data = await scraper.get_product_by_id(internal_id, color_product_id)
+        else:
+            new_data = await scraper.get_product_data(url)
+        
         if not new_data:
             logger.error(f"Falha ao obter produto {pid}, tentando na próxima.")
             continue

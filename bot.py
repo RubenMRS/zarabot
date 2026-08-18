@@ -2,6 +2,8 @@ import os
 import json
 import logging
 import asyncio
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from datetime import datetime
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
@@ -277,10 +279,27 @@ async def monitor_products(context: ContextTypes.DEFAULT_TYPE):
         else:
             logger.info("Sem alterações.")
 
+# --- SERVER DUMMY PARA O RENDER ---
+def run_dummy_server():
+    port = int(os.environ.get("PORT", 8080))
+    class DummyHandler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"Bot da Zara esta a correr!")
+    
+    server = HTTPServer(("0.0.0.0", port), DummyHandler)
+    logger.info(f"Dummy server a ouvir na porta {port}")
+    server.serve_forever()
+
 if __name__ == '__main__':
     if not TOKEN:
         logger.error("A variável de ambiente TELEGRAM_BOT_TOKEN não está definida!")
         exit(1)
+        
+    # Iniciar o dummy server numa thread separada se a variável PORT estiver definida (Render)
+    if "PORT" in os.environ:
+        threading.Thread(target=run_dummy_server, daemon=True).start()
         
     application = ApplicationBuilder().token(TOKEN).build()
 

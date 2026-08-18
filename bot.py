@@ -1,5 +1,6 @@
 import os
 import json
+import re
 import logging
 import asyncio
 import threading
@@ -93,39 +94,43 @@ async def adicionar(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not context.args:
         await update.message.reply_text("Por favor envia o URL ou Referência. Exemplo:\n/adicionar https://www.zara.com/...\nou\n/adicionar 4772/354/717")
         return
+    
+    try:
+        raw_input = context.args[0]
+        url = resolve_zara_url(raw_input)
         
-    raw_input = context.args[0]
-    url = resolve_zara_url(raw_input)
-    
-    await update.message.reply_text(f"⏳ A analisar o produto ({url}), isto pode demorar alguns segundos...")
-    
-    data = await scraper.get_product_data(url)
-    if not data:
-        await update.message.reply_text("❌ Não foi possível obter os dados deste URL. Verifica se é um link válido da Zara e tenta novamente.")
-        return
+        await update.message.reply_text(f"⏳ A analisar o produto ({url}), isto pode demorar alguns segundos...")
         
-    products = load_products()
-    new_id = get_next_id(products)
-    
-    # Guardar no DB
-    products[new_id] = {
-        "url": url,
-        "name": data["name"],
-        "price": data["price"],
-        "sizes": data["sizes"],
-        "chat_id": chat_id,
-        "last_check": datetime.now().isoformat()
-    }
-    save_products(products)
-    
-    msg = (
-        f"✅ Produto adicionado! (ID: {new_id})\n\n"
-        f"👗 {data['name']}\n"
-        f"💰 {str(data['price']).replace('.', ',')} €\n\n"
-        f"📦 Stock:\n{format_sizes_text(data['sizes'])}\n"
-        f"🔔 Vou começar a monitorizar."
-    )
-    await update.message.reply_text(msg)
+        data = await scraper.get_product_data(url)
+        if not data:
+            await update.message.reply_text("❌ Não foi possível obter os dados deste URL. Verifica se é um link válido da Zara e tenta novamente.")
+            return
+            
+        products = load_products()
+        new_id = get_next_id(products)
+        
+        # Guardar no DB
+        products[new_id] = {
+            "url": url,
+            "name": data["name"],
+            "price": data["price"],
+            "sizes": data["sizes"],
+            "chat_id": chat_id,
+            "last_check": datetime.now().isoformat()
+        }
+        save_products(products)
+        
+        msg = (
+            f"✅ Produto adicionado! (ID: {new_id})\n\n"
+            f"👗 {data['name']}\n"
+            f"💰 {str(data['price']).replace('.', ',')} €\n\n"
+            f"📦 Stock:\n{format_sizes_text(data['sizes'])}\n"
+            f"🔔 Vou começar a monitorizar."
+        )
+        await update.message.reply_text(msg)
+    except Exception as e:
+        logger.error(f"Erro no comando /adicionar: {e}", exc_info=True)
+        await update.message.reply_text(f"❌ Ocorreu um erro: {e}")
 
 async def lista(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id

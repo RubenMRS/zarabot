@@ -197,6 +197,23 @@ async def remover(update: Update, context: ContextTypes.DEFAULT_TYPE):
     save_products(products)
     await update.message.reply_text(f"✅ Produto {pid} removido com sucesso!")
 
+async def pingzara(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Comando de diagnóstico para ver se o IP do Render está a ser bloqueado pela Zara"""
+    msg = await update.message.reply_text("A testar ligação à Zara a partir do servidor...")
+    try:
+        import httpx
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept": "application/json"
+        }
+        async with httpx.AsyncClient(headers=headers, timeout=10) as client:
+            resp = await client.get("https://www.zara.com/pt/pt/products-details?productIds=546977678&ajax=true")
+            status = resp.status_code
+            text = resp.text[:100]
+            await msg.edit_text(f"Status Zara: {status}\nResposta: {text}")
+    except Exception as e:
+        await msg.edit_text(f"Erro ao ligar à Zara: {e}")
+
 # --- MONITORIZAÇÃO EM BACKGROUND ---
 
 async def monitor_products(context: ContextTypes.DEFAULT_TYPE):
@@ -323,6 +340,7 @@ if __name__ == '__main__':
     application.add_handler(CommandHandler('lista', lista))
     application.add_handler(CommandHandler('estado', estado))
     application.add_handler(CommandHandler('remover', remover))
+    application.add_handler(CommandHandler('pingzara', pingzara))
     
     # Adicionar o job para correr a cada X segundos
     # A monitorização vai usar o JobQueue do python-telegram-bot
